@@ -1,18 +1,16 @@
-alert("JS読み込み成功");
+alert("JS成功");
 
 const video =
 document.getElementById("video");
 
 navigator.mediaDevices
 .getUserMedia({
-  video:{
-    facingMode:"user"
-  }
+  video: true
 })
-.then(stream=>{
-  alert("カメラ取得成功");
+.then(stream => {
+  alert("カメラ成功");
   video.srcObject = stream;
 })
-.catch(err=>{
+.catch(err => {
   alert(err.message);
 });
