@@ -1,40 +1,143 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ぐーちゃんカメラ</title>
-
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ぐーちゃんカメラ</title>
+<style>
+  body {
+    margin: 0;
+    background: #fff;
+    text-align: center;
+    font-family: sans-serif;
+  }
+  h1 {
+    font-size: 20px;
+    margin: 16px 0;
+  }
+  .camera-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    background: #eee;
+  }
+  #video {
+    width: 100%;
+    display: block;
+  }
+  #frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  #canvas {
+    display: none;
+  }
+  .btn {
+    display: inline-block;
+    margin: 16px 8px;
+    padding: 12px 24px;
+    font-size: 16px;
+    background: #ff6f3c;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    text-decoration: none;
+  }
+  #status {
+    color: #c00;
+    font-size: 14px;
+    margin: 8px;
+    white-space: pre-wrap;
+  }
+  #result {
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  #result img {
+    width: 100%;
+    display: block;
+  }
+</style>
 </head>
-
 <body>
 
-  <div class="camera-wrap">
+<h1>ぐーちゃんと記念撮影📸</h1>
 
-    <video
-      id="video"
-      autoplay
-      playsinline>
-    </video>
+<div id="status"></div>
 
-    <img
-      id="frame"
-      src="guchan.png"
-      alt="ぐーちゃん">
+<div class="camera-wrap">
+  <video id="video" autoplay playsinline muted></video>
+  <img id="frame" src="guchan.png" alt="ぐーちゃん">
+</div>
 
-  </div>
+<div>
+  <button class="btn" id="captureBtn">撮影する</button>
+</div>
 
-  ＜button id="capture"＞ 　
-  撮影する 
-  ＜/button＞ 
-  ＜a id="download" download="guchan-photo.png"＞ 　
-  保存する 
-  ＜/a＞
+<canvas id="canvas"></canvas>
 
-  ＜script src="app.js"＞＜/script＞
+<div id="result"></div>
+
+<script>
+  var statusEl = document.getElementById("status");
+
+  function log(msg) {
+    statusEl.textContent = msg;
+    console.log(msg);
+  }
+
+  var video = document.getElementById("video");
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    log("このブラウザはカメラに対応していません。Chromeでhttpsのページを開いてください。");
+  } else {
+    navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user" },
+      audio: false
+    }).then(function (stream) {
+      video.srcObject = stream;
+      log("カメラ起動成功");
+    }).catch(function (err) {
+      log("カメラエラー: " + err.name + " " + err.message);
+    });
+  }
+
+  var captureBtn = document.getElementById("captureBtn");
+  var canvas = document.getElementById("canvas");
+  var frameImg = document.getElementById("frame");
+  var resultDiv = document.getElementById("result");
+
+  captureBtn.addEventListener("click", function () {
+    var w = 1080;
+    var h = 1920;
+
+    canvas.width = w;
+    canvas.height = h;
+
+    var ctx = canvas.getContext("2d");
+
+    if (video.videoWidth === 0) {
+      log("まだカメラ映像が準備できていません。数秒待って再度押してください。");
+      return;
+    }
+
+    ctx.drawImage(video, 0, 0, w, h);
+    ctx.drawImage(frameImg, 0, 0, w, h);
+
+    var dataUrl = canvas.toDataURL("image/png");
+
+    resultDiv.innerHTML =
+      '<img src="' + dataUrl + '">' +
+      '<div><a class="btn" download="guchan-photo.png" href="' + dataUrl + '">保存する</a></div>';
+
+    log("撮影しました！下の画像を保存してください。");
+  });
+</script>
 
 </body>
-
 </html>
