@@ -91,6 +91,7 @@
 
 <div>
   <button class="btn" id="captureBtn">② 撮影する</button>
+  <button class="btn" id="toggleFrameBtn" style="background:#555;">検証：ぐーちゃんを消す</button>
 </div>
 
 <canvas id="canvas"></canvas>
@@ -175,6 +176,20 @@
   // iOSはユーザーの明示的な操作（タップ）が無いとカメラ許可を求めないことがあるため、
   // ボタンを押したタイミングで初めてカメラをリクエストする
   startBtn.addEventListener("click", requestCamera);
+
+  var frameImgEl = document.getElementById("frame");
+
+  // 検証用：ぐーちゃん画像の表示/非表示を切り替えて、
+  // 映像自体が描画されているかを直接確認するためのボタン
+  var toggleFrameBtn = document.getElementById("toggleFrameBtn");
+  var frameVisible = true;
+  toggleFrameBtn.addEventListener("click", function () {
+    frameVisible = !frameVisible;
+    frameImgEl.style.display = frameVisible ? "block" : "none";
+    toggleFrameBtn.textContent = frameVisible
+      ? "検証：ぐーちゃんを消す"
+      : "検証：ぐーちゃんを表示する";
+  });
 
   var captureBtn = document.getElementById("captureBtn");
   var canvas = document.getElementById("canvas");
