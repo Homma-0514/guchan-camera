@@ -21,7 +21,7 @@
     max-width: 500px;
     margin: 0 auto;
     background: #000;
-    aspect-ratio: 9 / 16;
+    padding-top: 177.78%; /* 9:16 縦長比率をpaddingで確保（aspect-ratio非対応端末向け） */
     overflow: hidden;
   }
   #video {
@@ -111,18 +111,30 @@
     log("このブラウザはカメラに対応していません。Chromeでhttpsのページを開いてください。");
   } else {
     // まずはインカメラを厳密に指定して試す
+    function attachStream(stream, label) {
+      video.srcObject = stream;
+      // 一部端末はautoplay属性だけでは再生されないため明示的にplay()を呼ぶ
+      var playPromise = video.play();
+      if (playPromise && playPromise.catch) {
+        playPromise.catch(function (playErr) {
+          log("再生開始に失敗: " + playErr.name + " " + playErr.message);
+        });
+      }
+      video.addEventListener("loadedmetadata", function () {
+        log(label + "（映像サイズ: " + video.videoWidth + "x" + video.videoHeight + "）");
+      });
+    }
+
     startCamera({ video: { facingMode: { exact: "user" } }, audio: false })
       .then(function (stream) {
-        video.srcObject = stream;
-        log("カメラ起動成功（インカメラ）");
+        attachStream(stream, "カメラ起動成功（インカメラ）");
       })
       .catch(function (err) {
         log("インカメラ指定失敗（" + err.name + "）。通常指定で再試行します...");
         // 端末によっては exact 指定が失敗することがあるので、緩い指定で再試行
         startCamera({ video: { facingMode: "user" }, audio: false })
           .then(function (stream) {
-            video.srcObject = stream;
-            log("カメラ起動成功");
+            attachStream(stream, "カメラ起動成功");
           })
           .catch(function (err2) {
             log("カメラエラー: " + err2.name + " " + err2.message);
