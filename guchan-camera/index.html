@@ -37,10 +37,11 @@
   }
   #frame {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: 10%;
+    right: 2%;
+    left: auto;
+    width: 32%;
+    height: auto;
     pointer-events: none;
     z-index: 2;
   }
@@ -86,7 +87,7 @@
 
 <div class="camera-wrap">
   <video id="video" autoplay playsinline muted webkit-playsinline="true" x5-playsinline="true"></video>
-  <img id="frame" src="guchan.png" alt="ぐーちゃん">
+  <img id="frame" src="glucosamine.png" alt="グルコサミン">
 </div>
 
 <div>
@@ -218,7 +219,12 @@
     ctx.drawImage(video, 0, 0, w, h);
     ctx.restore();
 
-    ctx.drawImage(frameImg, 0, 0, w, h);
+    // 画面表示と同じ位置・サイズ（右端・上から10%・幅32%）に商品画像を重ねる
+    var frameW = w * 0.32;
+    var frameH = frameW * (frameImg.naturalHeight / frameImg.naturalWidth);
+    var frameX = w * 0.98 - frameW; // 右端から2%の余白
+    var frameY = h * 0.10;
+    ctx.drawImage(frameImg, frameX, frameY, frameW, frameH);
 
     var dataUrl = canvas.toDataURL("image/png");
 
