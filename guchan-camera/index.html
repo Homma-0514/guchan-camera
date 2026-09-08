@@ -80,13 +80,17 @@
 
 <div id="status"></div>
 
+<div>
+  <button class="btn" id="startBtn">① カメラを起動する</button>
+</div>
+
 <div class="camera-wrap">
-  <video id="video" autoplay playsinline muted></video>
+  <video id="video" autoplay playsinline muted webkit-playsinline="true" x5-playsinline="true"></video>
   <img id="frame" src="guchan.png" alt="ぐーちゃん">
 </div>
 
 <div>
-  <button class="btn" id="captureBtn">撮影する</button>
+  <button class="btn" id="captureBtn">② 撮影する</button>
 </div>
 
 <canvas id="canvas"></canvas>
@@ -102,28 +106,54 @@
   }
 
   var video = document.getElementById("video");
+  var startBtn = document.getElementById("startBtn");
 
   function startCamera(constraints) {
     return navigator.mediaDevices.getUserMedia(constraints);
   }
 
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    log("このブラウザはカメラに対応していません。Chromeでhttpsのページを開いてください。");
-  } else {
-    // まずはインカメラを厳密に指定して試す
-    function attachStream(stream, label) {
+  function attachStream(stream, label) {
+    // iOS Safariはこれらのプロパティを「属性」だけでなく
+    // JavaScriptの「プロパティ」としても明示的に設定しないと
+    // 映像が描画されないことがあるため、念のため全て設定する
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute("muted", "");
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
+
+    if ("srcObject" in video) {
       video.srcObject = stream;
-      // 一部端末はautoplay属性だけでは再生されないため明示的にplay()を呼ぶ
-      var playPromise = video.play();
-      if (playPromise && playPromise.catch) {
-        playPromise.catch(function (playErr) {
-          log("再生開始に失敗: " + playErr.name + " " + playErr.message);
-        });
-      }
-      video.addEventListener("loadedmetadata", function () {
-        log(label + "（映像サイズ: " + video.videoWidth + "x" + video.videoHeight + "）");
+    } else {
+      // 非常に古いSafari向けフォールバック
+      video.src = window.URL.createObjectURL(stream);
+    }
+
+    // 一部端末はautoplay属性だけでは再生されないため明示的にplay()を呼ぶ
+    var playPromise = video.play();
+    if (playPromise && playPromise.catch) {
+      playPromise.catch(function (playErr) {
+        log("再生開始に失敗: " + playErr.name + " " + playErr.message + "\n下の映像エリアを一度タップしてみてください。");
       });
     }
+
+    video.addEventListener("loadedmetadata", function () {
+      log(label + "（映像サイズ: " + video.videoWidth + "x" + video.videoHeight + "）");
+    });
+
+    // 映像エリアをタップしたら再生を試みる（iOSの自動再生ブロック対策）
+    video.addEventListener("click", function () {
+      video.play();
+    });
+  }
+
+  function requestCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      log("このブラウザはカメラに対応していません。SafariまたはChromeで直接このページを開いてください（LINEやXのアプリ内ブラウザでは動作しないことがあります）。");
+      return;
+    }
+
+    log("カメラ許可のポップアップが画面上部に出ていないか確認してください...");
 
     startCamera({ video: { facingMode: { exact: "user" } }, audio: false })
       .then(function (stream) {
@@ -137,10 +167,14 @@
             attachStream(stream, "カメラ起動成功");
           })
           .catch(function (err2) {
-            log("カメラエラー: " + err2.name + " " + err2.message);
+            log("カメラエラー: " + err2.name + " " + err2.message + "\n設定アプリ > このブラウザ > カメラ の許可設定もご確認ください。");
           });
       });
   }
+
+  // iOSはユーザーの明示的な操作（タップ）が無いとカメラ許可を求めないことがあるため、
+  // ボタンを押したタイミングで初めてカメラをリクエストする
+  startBtn.addEventListener("click", requestCamera);
 
   var captureBtn = document.getElementById("captureBtn");
   var canvas = document.getElementById("canvas");
