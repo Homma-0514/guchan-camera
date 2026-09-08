@@ -20,11 +20,20 @@
     width: 100%;
     max-width: 500px;
     margin: 0 auto;
-    background: #eee;
+    background: #000;
+    aspect-ratio: 9 / 16;
+    overflow: hidden;
   }
   #video {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
+    height: 100%;
+    object-fit: cover;
     display: block;
+    z-index: 1;
+    transform: scaleX(-1);
   }
   #frame {
     position: absolute;
@@ -33,6 +42,7 @@
     width: 100%;
     height: 100%;
     pointer-events: none;
+    z-index: 2;
   }
   #canvas {
     display: none;
@@ -93,18 +103,31 @@
 
   var video = document.getElementById("video");
 
+  function startCamera(constraints) {
+    return navigator.mediaDevices.getUserMedia(constraints);
+  }
+
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     log("このブラウザはカメラに対応していません。Chromeでhttpsのページを開いてください。");
   } else {
-    navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user" },
-      audio: false
-    }).then(function (stream) {
-      video.srcObject = stream;
-      log("カメラ起動成功");
-    }).catch(function (err) {
-      log("カメラエラー: " + err.name + " " + err.message);
-    });
+    // まずはインカメラを厳密に指定して試す
+    startCamera({ video: { facingMode: { exact: "user" } }, audio: false })
+      .then(function (stream) {
+        video.srcObject = stream;
+        log("カメラ起動成功（インカメラ）");
+      })
+      .catch(function (err) {
+        log("インカメラ指定失敗（" + err.name + "）。通常指定で再試行します...");
+        // 端末によっては exact 指定が失敗することがあるので、緩い指定で再試行
+        startCamera({ video: { facingMode: "user" }, audio: false })
+          .then(function (stream) {
+            video.srcObject = stream;
+            log("カメラ起動成功");
+          })
+          .catch(function (err2) {
+            log("カメラエラー: " + err2.name + " " + err2.message);
+          });
+      });
   }
 
   var captureBtn = document.getElementById("captureBtn");
@@ -126,7 +149,14 @@
       return;
     }
 
+    // video is mirrored on screen (scaleX(-1)) for a natural selfie feel,
+    // so mirror it on the canvas too, matching what the user sees.
+    ctx.save();
+    ctx.translate(w, 0);
+    ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, w, h);
+    ctx.restore();
+
     ctx.drawImage(frameImg, 0, 0, w, h);
 
     var dataUrl = canvas.toDataURL("image/png");
